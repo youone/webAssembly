@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData">
+    <serverData>
+      <paths name="CentOS (228daa73-c127-485f-b73b-05dcdd8ef429)">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="Ubuntu (167bef6f-477b-4697-a501-8ecb7fdafd8a)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/tmp/tmp.d8rFPD1hLv" local="$PROJECT_DIR$/cpp" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/cpp/cmake-build-debug-ubuntu" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cpp/cmake-build-debug-ubuntu" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
+      <paths name="WSL (de21dec0-8868-46e8-8c98-c01f42b87c31)">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+  </component>
+</project>
