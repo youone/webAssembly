@@ -1,2 +1,6 @@
 # Project exclude paths
 /cpp/cmake-build-debug-ubuntu/
+/cpp/fftw-3.3.8
+/cpp/eigen-eigen-323c052e1731
+/cpp/GeographicLib-1.49
+/node_modules

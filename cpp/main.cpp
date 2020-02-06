@@ -15,7 +15,7 @@ double EMSCRIPTEN_KEEPALIVE process(float* data, int size, int nffts) {
 
 int main(int argc, char ** argv) {
     fftw_complex in[10];
-    cout << "PROCESSINGGG" << endl;
+    cout << "PROCESSAR" << endl;
 }
 
 #ifdef __cplusplus
