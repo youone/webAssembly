@@ -1,40 +1,13 @@
-// import('../cpp/cmake-build-debug-ubuntu/bindings.js').then(bindtest => {
-//     import('../cpp/cmake-build-debug-ubuntu/bindings.wasm').then(mm => {
-//         console.log(mm);
-//     });
-// });
+import bearingModule from './wasm/bearing_wasm.js';
+// import bearingAsmModule from './wasm/bearing_asm.js';
 
-// import bindtest from './wasm/bearing.js';
-// import bindtestModule from './wasm/bearing.wasm';
-//
-// // const module = bindtest({locateFile(path) {if(path.endsWith('.wasm')) {return bindtestModule;} return path;}});
-//
-// console.log(bindtestModule);
-//
-// fetch(bindtestModule).then((mm) => {
-//     console.log(mm);
-// })
-//
+const module = bearingModule({locateFile: (path, prefix) => {
+        return 'bearing_wasm.wasm';
+    }});
 
-// import('./test.js');
-// import('./test.wasm');
-// import('../cpp/cmake-build-debug-ubuntu/main.wasm')
-// // import('./add.wasm')
-//     .then(module => {
-//         console.log(module.add(3,5));
-//     })
+// const asmModule = bearingAsmModule();
+// console.log(asmModule.getBearing(60,40,60,40.001))
 
-
-// fetch('./test.wasm').then(async (response) => {
-//
-//     let arrayBuffer = await response.arrayBuffer();
-//
-//
-//     let wasmModule = await WebAssembly.instantiate(arrayBuffer, {});
-//
-//     console.log(wasmModule);
-//
-// })
-
-const f = 5;
-
+module.onRuntimeInitialized = () => {
+    console.log(module.getBearing(60,40,60,40.001))
+}

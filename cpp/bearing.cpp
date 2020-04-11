@@ -6,7 +6,7 @@
 #include <cmath>
 #include <vector>
 #include <map>
-#include <Eigen/Dense>
+#include <eigen3/Eigen/Dense>
 #include <GeographicLib/Geodesic.hpp>
 #include <GeographicLib/Geocentric.hpp>
 #include <GeographicLib/GeodesicLine.hpp>
@@ -324,8 +324,8 @@ std::map<std::string, std::vector<double>> myFunc(
 
 double getBearing(double lat1, double lon1, double lat2, double lon2) {
     Vector2d location1, location2;
-    location1 << lat1, lon1;
-    location2 << lat2, lon2;
+    location1 << lon1, lat1;
+    location2 << lon2, lat2;
     return geodesicInverse(location2, location1);
 }
 

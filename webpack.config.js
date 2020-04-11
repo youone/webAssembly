@@ -5,8 +5,8 @@ const webpack = require('webpack');
 module.exports = {
     mode: 'development',
     entry: {
+        index: path.join(__dirname, '/src/index.js'),
         demo: path.join(__dirname, '/src/demo.js'),
-        mapping: path.join(__dirname, '/src/index.js'),
     },
     output: {
         filename: '[name].js',
@@ -67,10 +67,13 @@ module.exports = {
 
     plugins: [
         new HtmlWebpackPlugin({
-            chunks: ['demo']
+            chunks: ['demo'],
+            filename: "demo.html"
+        }),
+        new HtmlWebpackPlugin({
+            chunks: ['index'],
         }),
     ],
-
     node: {
         fs: 'empty',
     }
