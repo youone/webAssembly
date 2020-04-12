@@ -1,3 +1,3 @@
 # Project exclude paths
-/cpp/cmake-build-debug-ubuntu/
+/cpp/cmake-build-debug-local-wsl/
 /node_modules

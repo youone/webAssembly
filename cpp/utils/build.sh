@@ -3,12 +3,12 @@ BIN_DIR=${CPP_DIR}/cmake-build-debug-ubuntu
 MODULE_NAME=bearing
 
 buildWSL() {
-  echo BUILDING "$1" ON WSL ... "$2";
-  ls -al "$2"
+  echo BUILDING "$1", "$2" ON WSL ... "$3";
+  ls -al "$3";
   cd /tmp/tmp.jMANeMGRJk || return;
-  make bearing_wasm_new CLION_EXE_DIR=cmake-build-debug-local-wsl;
-  cp -v cmake-build-debug-local-wsl/bearing_wasm.js "$2"/../src/wasm
-  cp -v cmake-build-debug-local-wsl/bearing_wasm.wasm "$2"/../dist
+  make module MODULE_NAME="$2" ASM_TYPE="$1" CLION_EXE_DIR=cmake-build-debug-local-wsl;
+  cp -v cmake-build-debug-local-wsl/"$2"_wasm.js "$3"/../../src/wasm;
+  cp -v cmake-build-debug-local-wsl/"$2"_wasm.wasm "$3"/../../dist;
 }
 
 buildRemote() {

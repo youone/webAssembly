@@ -1,13 +1,30 @@
-import bearingModule from './wasm/bearing_wasm.js';
-// import bearingAsmModule from './wasm/bearing_asm.js';
+const exports = {
+    bearing: ['getBearing'],
+    fft: []
+};
 
-const module = bearingModule({locateFile: (path, prefix) => {
-        return 'bearing_wasm.wasm';
-    }});
-
-// const asmModule = bearingAsmModule();
-// console.log(asmModule.getBearing(60,40,60,40.001))
-
-module.onRuntimeInitialized = () => {
-    console.log(module.getBearing(60,40,60,40.001))
+function loadWasmModule(moduleName) {
+    return new Promise(resolve => {
+        import(`./wasm/${moduleName}_wasm.js`).then(module => {
+            const mod = module.default({locateFile: (path, prefix) => {
+                    return `${moduleName}_wasm.wasm`;
+                }});
+            mod.onRuntimeInitialized = () => {
+                const exportedFunctions = {};
+                exports[moduleName].map(modName => {
+                    exportedFunctions[modName] = mod[modName];
+                });
+                resolve(exportedFunctions);
+            }
+        });
+    })
 }
+
+
+loadWasmModule('bearing').then(bearingMod => {
+    console.log(bearingMod.getBearing(60,40,60,40.001));
+})
+
+loadWasmModule('fft').then(fftMod => {
+    console.log(fftMod);
+})
