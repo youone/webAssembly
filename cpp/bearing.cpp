@@ -72,15 +72,15 @@ Vector4d bearingCrossLocation(Vector2d location1, double bearing1, Vector2d loca
 
 // azimuth between two geographic locations
 double geodesicInverse(VectorXd p1, VectorXd p2) {
-  const Geodesic& geodesic = Geodesic::WGS84();
-  double s12, azi1, azi2;
-  geodesic.Inverse(p2[1], p2[0], p1[1], p1[0], s12, azi1, azi2);
-  if (azi1 < 0) {
-    return 360+azi1;
-  }
-  else {
-    return azi1;
-  }
+    const Geodesic& geodesic = Geodesic::WGS84();
+    double s12, azi1, azi2;
+    geodesic.Inverse(p2[1], p2[0], p1[1], p1[0], s12, azi1, azi2);
+    if (azi1 < 0) {
+        return 360+azi1;
+    }
+    else {
+        return azi1;
+    }
 }
 
 MatrixXd finalEigenvecs;
@@ -148,12 +148,19 @@ VectorXd solveIterationSphere(int n, MatrixXd siteCoord, VectorXd bearingMeasure
     VectorXd bearingGuess(n), crossImproved(2);
 
     for (int i=0; i<n; i++) {
-//        std::cout << n << " " << i << " test1: " << crossGuess.transpose() << std::endl;
+
         bearingGuess(i) = geodesicInverse(crossGuess, siteCoord.row(i));
-//        std::cout << "test2: " << std::endl;
+//        if (std::isnan(bearingGuess(i))) {
+//            std::cout << " test1: " << crossGuess << std::endl;
+//            std::cout << " test2: " << siteCoord.row(i) << std::endl;
+//        }
+
         VectorXd dx1(2), dx2(2);
         dx1 << 1.0e-5/2, 0;
         dx2 << 0, 1.0e-5/2;
+
+//        std::cout << n << " " << i << " test1: " << geodesicInverse(crossGuess - dx1, siteCoord.row(i)) << std::endl;
+//        std::cout << n << " " << i << " test1: " << geodesicInverse(crossGuess + dx1, siteCoord.row(i)) << std::endl;
 
         double derivative1 = (-geodesicInverse(crossGuess - dx1, siteCoord.row(i)) + geodesicInverse(crossGuess + dx1, siteCoord.row(i)))/1.0e-5;
         double derivative2 = (-geodesicInverse(crossGuess - dx2, siteCoord.row(i)) + geodesicInverse(crossGuess + dx2, siteCoord.row(i)))/1.0e-5;
@@ -193,15 +200,15 @@ VectorXd solveIterationSphere(int n, MatrixXd siteCoord, VectorXd bearingMeasure
     return crossImproved;
 }
 
-std::map<std::string, std::vector<double>> myFunc(
-    int n,
-    uint32_t siteCoordsPtr,
-    uint32_t bearingsPtr,
-    int nEllipsePoints,
-    int nBearingLinePoints,
-    uint32_t ellipsePtr,
-    uint32_t bearingLinesPtr
-    ) {
+std::map<std::string, std::vector<double>> getEllipse(
+        int n,
+        uint32_t siteCoordsPtr,
+        uint32_t bearingsPtr,
+        int nEllipsePoints,
+        int nBearingLinePoints,
+        uint32_t ellipsePtr,
+        uint32_t bearingLinesPtr
+) {
 
     double siteLocations[n][2];
     memcpy(siteLocations, reinterpret_cast<double*>(siteCoordsPtr), 2*n*sizeof(double));
@@ -227,7 +234,8 @@ std::map<std::string, std::vector<double>> myFunc(
 //    std::cout << "MEASURED BEARINGS: " << siteBearings.transpose() << std::endl;
 //    std::cout << "MEASURED SIGMAS: " << sigmas.transpose() << std::endl;
 
-    MatrixXd crossCoordinates(6,2);
+    //Coordinates of all the the n(n+1)/2 crosses
+    MatrixXd crossCoordinates(n*(n+1)/2,2);
     double meanLat = 0, meanLon = 0;
     int nComb = 0;
     for(int i=0; i<n; i++) {
@@ -245,13 +253,13 @@ std::map<std::string, std::vector<double>> myFunc(
 
                 nComb++;
 
-//                std::cout << "CROSS: "
-//                << i+1 << " " << j+1 << " - "
-//                << coordi.transpose() << " "
-//                << siteBearings[i] << ", "
-//                << coordj.transpose() << " "
-//                << siteBearings[j] << " ... "
-//                << crosses.transpose() << std::endl;
+                std::cout << "CROSS: "
+                << i+1 << " " << j+1 << " - "
+                << coordi.transpose() << " "
+                << siteBearings[i] << ", "
+                << coordj.transpose() << " "
+                << siteBearings[j] << " ... "
+                << crosses.transpose() << std::endl;
             }
         }
     }
@@ -261,16 +269,16 @@ std::map<std::string, std::vector<double>> myFunc(
         for(int j=0; j<nComb; j++) {
             if (i < j) {
                 double crossDistance = sqrt(
-                   pow(crossCoordinates(i,0)-crossCoordinates(j,0),2) +
-                   pow(crossCoordinates(i,1)-crossCoordinates(j,1),2)
-                   );
-                   if (crossDistance < crossMinDistance) {
-                       crossMinDistance = crossDistance;
-                       crossMeanLat = crossCoordinates(i,0);
-                       crossMeanLon = crossCoordinates(i,1);
-//                       crossMeanLat = (crossCoordinates(i,0)+crossCoordinates(j,0))/2;
-//                       crossMeanLon = (crossCoordinates(i,1)+crossCoordinates(j,1))/2;
-                   }
+                        pow(crossCoordinates(i,0)-crossCoordinates(j,0),2) +
+                        pow(crossCoordinates(i,1)-crossCoordinates(j,1),2)
+                );
+                if (crossDistance < crossMinDistance) {
+                    crossMinDistance = crossDistance;
+//                    crossMeanLat = crossCoordinates(i,0);
+//                    crossMeanLon = crossCoordinates(i,1);
+                     crossMeanLat = (crossCoordinates(i,0)+crossCoordinates(j,0))/2;
+                     crossMeanLon = (crossCoordinates(i,1)+crossCoordinates(j,1))/2;
+                }
 //                std::cout << "CROSS DISTANCE: "
 //                << i << ","
 //                << j << "  - "
@@ -283,56 +291,106 @@ std::map<std::string, std::vector<double>> myFunc(
     }
 
 //   crossGuess << meanLon/nComb, meanLat/nComb;
-   crossGuess << crossMeanLon, crossMeanLat;
+    crossGuess << crossMeanLon, crossMeanLat;
 //   std::cout << "CROSS REFERENCE: " << crossGuess.transpose() << std::endl;
 ////   std::cout << "CROSS REFERENCE2: " << crossMeanLon << ", " << crossMeanLat << std::endl;
 
-   double angle, ev1, ev2;
-   std::map<std::string, VectorXd> result;
-   VectorXd crossImproved1 = solveIterationSphere(n, siteCoord, siteBearings, sigmas, crossGuess, &angle, &ev1, &ev2);
-   VectorXd crossImproved2 = solveIterationSphere(n, siteCoord, siteBearings, sigmas, crossImproved1, &angle, &ev1, &ev2);
-   VectorXd crossImproved3 = solveIterationSphere(n, siteCoord, siteBearings, sigmas, crossImproved2, &angle, &ev1, &ev2);
-   VectorXd crossImproved4 = solveIterationSphere(n, siteCoord, siteBearings, sigmas, crossImproved3, &angle, &ev1, &ev2);
+    std::vector<double> fitStatus(1);
+    fitStatus[0] = 1;
+
+    double angle, ev1, ev2;
+    std::map<std::string, VectorXd> result;
+
+//    VectorXd crossImproved1 = solveIterationSphere(n, siteCoord, siteBearings, sigmas, crossGuess, &angle, &ev1, &ev2);
+//    std::cout << "CROSSDIFF1: " << (crossGuess - crossImproved1).norm() << " - " << crossGuess << std::endl;
+//    if (std::isnan((crossGuess - crossImproved1).norm())) fitStatus[0] = 0;
+////    if (std::isnan((crossGuess - crossImproved1).norm())) throw 10;
+////    std::cout << "ELLIPSE1: " << angle * 180/PI << ", " << ev1 << " " << ev2 << std::endl;
+//
+//    VectorXd crossImproved2 = solveIterationSphere(n, siteCoord, siteBearings, sigmas, crossImproved1, &angle, &ev1, &ev2);
+//    std::cout << "CROSSDIFF2: " << (crossImproved1 - crossImproved2).norm() << " - " << crossImproved1 << std::endl;
+//    if (std::isnan((crossImproved1 - crossImproved2).norm())) fitStatus[0] = 0;
+////    if (std::isnan((crossImproved1 - crossImproved2).norm())) throw 10;
+////    std::cout << "ELLIPSE2: " << angle * 180/PI << ", " << ev1 << " " << ev2 << std::endl;
+//
+//    VectorXd crossImproved3 = solveIterationSphere(n, siteCoord, siteBearings, sigmas, crossImproved2, &angle, &ev1, &ev2);
+//    std::cout << "CROSSDIFF3: " << (crossImproved2 - crossImproved3).norm() << " - " << crossImproved2 << std::endl;
+//    if (std::isnan((crossImproved2 - crossImproved3).norm())) fitStatus[0] = 0;
+////    if (std::isnan((crossImproved2 - crossImproved3).norm())) throw 10;
+////    std::cout << "ELLIPSE3: " << angle * 180/PI << ", " << ev1 << " " << ev2 << std::endl;
+//
+//    VectorXd crossImproved4 = solveIterationSphere(n, siteCoord, siteBearings, sigmas, crossImproved3, &angle, &ev1, &ev2);
+//    std::cout << "CROSSDIFF4: " << (crossImproved3 - crossImproved4).norm() << " - " << crossImproved3 << std::endl;
+//    if (std::isnan((crossImproved3 - crossImproved4).norm())) fitStatus[0] = 0;
+////    if (std::isnan((crossImproved3 - crossImproved4).norm())) throw 10;
+////    std::cout << "ELLIPSE4: " << angle * 180/PI << ", " << ev1 << " " << ev2 << std::endl;
+//
+//    VectorXd crossImproved5 = solveIterationSphere(n, siteCoord, siteBearings, sigmas, crossImproved4, &angle, &ev1, &ev2);
+//    std::cout << "CROSSDIFF5: " << (crossImproved4 - crossImproved5).norm() << " - " << crossImproved4 << std::endl;
+//    if (std::isnan((crossImproved4 - crossImproved5).norm())) fitStatus[0] = 0;
+////    if (std::isnan((crossImproved3 - crossImproved4).norm())) throw 10;
+////    std::cout << "ELLIPSE4: " << angle * 180/PI << ", " << ev1 << " " << ev2 << std::endl;
+//
+//    VectorXd crossImproved6 = solveIterationSphere(n, siteCoord, siteBearings, sigmas, crossImproved5, &angle, &ev1, &ev2);
+//    std::cout << "CROSSDIFF6: " << (crossImproved5 - crossImproved6).norm() << " - " << crossImproved5 << std::endl;
+//    if (std::isnan((crossImproved5 - crossImproved6).norm())) fitStatus[0] = 0;
+////    if (std::isnan((crossImproved3 - crossImproved4).norm())) throw 10;
+////    std::cout << "ELLIPSE4: " << angle * 180/PI << ", " << ev1 << " " << ev2 << std::endl;
+
+    VectorXd crossImproved = crossGuess, crossImprovedOld;
+    for(int iit=0; iit<6; iit++) {
+        crossImprovedOld = crossImproved;
+        crossImproved = solveIterationSphere(n, siteCoord, siteBearings, sigmas, crossImproved, &angle, &ev1, &ev2);
+        std::cout << "CROSSDIFF " << iit << ": " << (crossImprovedOld - crossImproved).norm() << " - " << crossImprovedOld << std::endl;
+        if (std::isnan((crossImprovedOld - crossImproved).norm())) fitStatus[0] = 0;
+    }
 
 //   double ellipsePoints[nEllipsePoints][2];
-   getEllipsePoints(nEllipsePoints, crossImproved4, 1*sqrt(-2*log(1-0.95)*ev2), 1*sqrt(-2*log(1-0.95)*ev1), ellipse);
-   getBearingPoints(nBearingLinePoints ,siteCoord, siteBearings, sigmas, bearingLines);
+    getEllipsePoints(nEllipsePoints, crossImproved, 1 * sqrt(-2 * log(1 - 0.95) * ev2), 1 * sqrt(-2 * log(1 - 0.95) * ev1), ellipse);
+    getBearingPoints(nBearingLinePoints ,siteCoord, siteBearings, sigmas, bearingLines);
 
-   std::cout << "ELLIPSE: " << angle * 180/PI << ", " << ev1 << " " << ev2 << std::endl;
+    std::cout << "ELLIPSE: " << angle * 180/PI << ", " << ev1 << " " << ev2 << std::endl;
 //   std::cout << "CROSS COORD: " << crossImproved4.transpose() << std::endl;
 //   std::cout << "ERROR: " << (crossImproved4-crossImproved3).transpose() << std::endl;
 
-   std::vector<double> ellipseParameters(5);
-   ellipseParameters[0] = crossImproved4(0);
-   ellipseParameters[1] = crossImproved4(1);
-   ellipseParameters[2] = angle;
-   ellipseParameters[3] = ev1;
-   ellipseParameters[4] = ev2;
 
-   std::vector<double> lastEigen(4);
-   lastEigen[0] = finalEigenvecs(0,0);
-   lastEigen[1] = finalEigenvecs(1,0);
-   lastEigen[2] = finalEigenvecs(0,1);
-   lastEigen[3] = finalEigenvecs(1,1);
+    std::vector<double> initialCrossGuess(2);
+    initialCrossGuess[0] = crossGuess(0);
+    initialCrossGuess[1] = crossGuess(1);
+
+    std::vector<double> ellipseParameters(5);
+    ellipseParameters[0] = crossImproved(0);
+    ellipseParameters[1] = crossImproved(1);
+    ellipseParameters[2] = angle;
+    ellipseParameters[3] = ev1;
+    ellipseParameters[4] = ev2;
+
+    std::vector<double> lastEigen(4);
+    lastEigen[0] = finalEigenvecs(0,0);
+    lastEigen[1] = finalEigenvecs(1,0);
+    lastEigen[2] = finalEigenvecs(0,1);
+    lastEigen[3] = finalEigenvecs(1,1);
 
     std::map<std::string, std::vector<double>> m;
     m["ellipseParameters"] = ellipseParameters;
     m["eigenVectors"] = lastEigen;
+    m["crossGuess"] = initialCrossGuess;
+    m["fitStatus"] = fitStatus;
 
     return m;
 }
 
 double getBearing(double lat1, double lon1, double lat2, double lon2) {
     Vector2d location1, location2;
-    location1 << lon1, lat1;
-    location2 << lon2, lat2;
+    location1 << lat1, lon1;
+    location2 << lat2, lon2;
     return geodesicInverse(location2, location1);
 }
 
 
 EMSCRIPTEN_BINDINGS(MyLib) {
-  function("getBearing", &getBearing);
-  function("myFunc", &myFunc, allow_raw_pointers());
-  register_vector<double>("vector<double>");
-  register_map<std::string, std::vector<double>>("map<string, vector<double>>");
+    function("getBearing", &getBearing);
+    function("getEllipse", &getEllipse, allow_raw_pointers());
+    register_vector<double>("vector<double>");
+    register_map<std::string, std::vector<double>>("map<string, vector<double>>");
 }

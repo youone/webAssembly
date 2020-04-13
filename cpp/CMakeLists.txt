@@ -6,6 +6,5 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 include_directories("/opt/emsdk/upstream/emscripten/system/include/")
 
-add_custom_target(bearing COMMAND make bearing_wasm_new -C ${webAssembly_SOURCE_DIR} CLION_EXE_DIR=${PROJECT_BINARY_DIR})
-
-add_library(main.cpp bearing.cpp fft.cpp)
+#add_custom_target(bearing COMMAND make module -C ${webAssembly_SOURCE_DIR} CLION_EXE_DIR=${PROJECT_BINARY_DIR})
+add_library(bearing.cpp fft.cpp)
