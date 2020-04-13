@@ -64,9 +64,13 @@ $('<button id="gbButton">get bearings</button>').on('click', event => {
         bearingSource.removeFeature(f);
     });
 
+    const lonWidth = 50; const lonMean = -10; const latWidth = 30; const latMean = 45;
+    // const lonWidth = 0; const lonMean = 10; const latWidth = 0; const latMean = 65;
+    // const lonWidth = 0; const lonMean = 35; const latWidth = 0; const latMean = 70;
+    // const lonWidth = 2, lonMean = 61, latWidth = 4, latMean = 8;
+    // const crossCoord = [latWidth*Math.random()+latMean, lonWidth*Math.random()+latMean];
+    const crossCoord = [lonWidth*Math.random()+lonMean, latWidth*Math.random()+latMean];
 
-    // const crossCoord = [50,60];
-    const crossCoord = [50*Math.random()-10, 30*Math.random()+45];
     sigma = [2,2,2];
     bias = [0,0,0];
     const correctBearings = dfSites.map(s => {
@@ -98,11 +102,13 @@ $('<button id="gbButton">get bearings</button>').on('click', event => {
 
     let fitOk;
     let crossGuess;
+    let ellipseParameters;
     const time = Date.now();
     try {
         const data = module.getEllipse(nSites, siteCoordsPtr, bearingsPtr, nEllipsePoints, nBearingLinePoints, ellipsePtr, bearingLinesPtr);
         fitOk = data.get('fitStatus').get(0);
         crossGuess = data.get('crossGuess');
+        ellipseParameters = data.get('ellipseParameters');
 
         const crossGeometry = new Circle(transform([crossGuess.get(0), crossGuess.get(1)], 'EPSG:4326', 'EPSG:3857'), 40000);
         const crossFeature = new Feature({
@@ -123,8 +129,6 @@ $('<button id="gbButton">get bearings</button>').on('click', event => {
         return;
     }
     console.log('TIME: ', Date.now() - time);
-
-    // console.log(data.get('ellipseParameters').get(0), data.get('ellipseParameters').get(1), data.get('ellipseParameters').get(2)*180/Math.PI);
 
     let mainCoord;
     bearingLines = [].slice.call(bearingLines);
@@ -154,11 +158,19 @@ $('<button id="gbButton">get bearings</button>').on('click', event => {
         }));
     }
 
+    console.log(ellipseParameters.get(3), ellipseParameters.get(4));
+
+    // if (fitOk && ellipseParameters.get(4) < 500) {
     if (fitOk) {
         // console.log('ELLIPSE: ', ellipse);
         ellipse = [].slice.call(ellipse);
-        const ellipseCoord = zipLatLon(ellipse,0, nEllipsePoints, nEllipsePoints).map(c => transform(c, 'EPSG:4326', 'EPSG:3857'));
+        const ellipseCoord = zipLatLon(ellipse,0, nEllipsePoints, nEllipsePoints)
+            .map(c => transform(c, 'EPSG:4326', 'EPSG:3857'))
+            .filter(c => !isNaN(c[1]));
         const ellipseGeometry = new Polygon([ellipseCoord]);
+
+        console.log(zipLatLon(ellipse,0, nEllipsePoints, nEllipsePoints));
+        console.log(ellipseCoord);
 
         const ellipseFeature = new Feature({
             name: 'ellipse',
@@ -177,7 +189,7 @@ $('<button id="gbButton">get bearings</button>').on('click', event => {
         console.log(nHits/nShots);
     }
     else {
-        console.error('FIT PROBLEM!', crossGuess.get(0), crossGuess.get(1));
+        console.error('FIT PROBLEM!', fitOk, ellipseParameters.get(3), ellipseParameters.get(4));
         $('#gbButton').hide();
     }
 
