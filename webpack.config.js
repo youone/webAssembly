@@ -1,6 +1,12 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const path = require('path');
 const webpack = require('webpack');
+
+// The path to the cesium source code
+const cesiumSource = 'node_modules/cesium/Source';
+const cesiumWorkers = '../Build/Cesium/Workers';
+const olSource = 'node_modules/openlayers/src/ol';
 
 module.exports = {
     mode: 'development',
@@ -68,11 +74,25 @@ module.exports = {
     plugins: [
         new HtmlWebpackPlugin({
             chunks: ['demo'],
-            filename: "demo.html"
+            filename: "index.html"
         }),
-        new HtmlWebpackPlugin({
-            chunks: ['index'],
+        // new HtmlWebpackPlugin({
+        //     chunks: ['index'],
+        // }),
+        new CopyWebpackPlugin([{from: path.join(cesiumSource, cesiumWorkers), to: 'Workers'}]),
+        new CopyWebpackPlugin([{from: path.join(cesiumSource, 'Assets'), to: 'Assets'}]),
+        new CopyWebpackPlugin([{from: path.join(cesiumSource, 'Widgets'), to: 'Widgets'}]),
+        new webpack.DefinePlugin({
+            // Define relative base path in cesium for loading assets
+            CESIUM_BASE_URL: JSON.stringify('')
         }),
+        // Split cesium into a seperate bundle
+        // new webpack.optimize.CommonsChunkPlugin({
+        //     name: 'cesium',
+        //     minChunks: function (module) {
+        //         return module.context && module.context.indexOf('cesium') !== -1;
+        //     }
+        // })
     ],
     node: {
         fs: 'empty',

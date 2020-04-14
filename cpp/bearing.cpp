@@ -89,10 +89,11 @@ double geodesicInverse(VectorXd p1, VectorXd p2) {
 
 MatrixXd finalEigenvecs;
 
-void getEllipsePoints(int n, Vector2d center, double major, double minor, double* result) {
+void getEllipsePoints(int n, Vector2d center, double major, double minor, double theta, double* result) {
 
     MatrixXd ellipseBaseVectors;
     double a,b;
+
     if (finalEigenvecs.determinant() > 0) {
         ellipseBaseVectors = finalEigenvecs.rowwise().reverse();
         a=minor; b=major;
@@ -102,12 +103,41 @@ void getEllipsePoints(int n, Vector2d center, double major, double minor, double
         a=major; b=minor;
     }
 
+//    ellipseBaseVectors = finalEigenvecs;
+//    a=minor; b=major;
+
+//    double theta2 = -asin(finalEigenvecs(1,1));
+//    double theta2 = asin(ellipseBaseVectors(1,1));
+    Vector2d xtest;
+    xtest << 1,0;
+    Vector2d xtestrot = ellipseBaseVectors * xtest;
+    double theta2 = acos(xtest.dot(xtestrot)) - 18*M_PI/180;
+//    double theta2 = 45*M_PI/180;
+    std::cout << "THETA: " << -asin(ellipseBaseVectors(1,1))*180/M_PI << " " << theta2*180/M_PI << std::endl;
+    std::cout << "MAJOR: " << major << std::endl;
+    std::cout << "MINOR: " << minor << std::endl;
+
     for (int i=0; i<n; i++) {
-        Vector2d x;
+        Vector2d x, el;
         x << b*cos(2*M_PI*i/n), a*sin(2*M_PI*i/n);
         Vector2d xrot = ellipseBaseVectors.inverse() * x;
+
+        el = x + center.reverse();
+        Vector3d X = geographic2cartesian(el);
+        Vector3d U = geographic2cartesian(center.reverse());
+        Vector3d Xrot =  U * U.dot(X) + cos(theta2) * (U.cross(X)).cross(U) + sin(theta2) * U.cross(X);
+//        std::cout << "X   : " << X.transpose() << std::endl;
+//        std::cout << "Xrot: " << Xrot.transpose() << std::endl;
+        Vector2d elrot = cartesian2geographic(Xrot);
+
+//        result[i] = elrot(0);
+//        result[i + n] = elrot(1);
+
+//        result[i] = xrot(1);
+//        result[i + n] = xrot(0);
         result[i] = center[1] + xrot(1);
         result[i + n] = center[0] + xrot(0);
+
     }
 }
 
@@ -226,43 +256,28 @@ VectorXd addBearings(VectorXd b1, VectorXd b2) {
 
 VectorXd solveIterationSphere(int n, MatrixXd siteCoord, VectorXd bearingMeasured, VectorXd sigma, VectorXd crossGuess, double* angle, double* ev1, double* ev2) {
 
-    MatrixXd G(n,2), P, bearingDiff(n,1), eigenvectors;
+    MatrixXd J(n, 2), P, bearingDiff(n, 1), eigenvectors;
     MatrixXd N(n,n);
     VectorXd bearingGuess(n), crossImproved(2);
+    VectorXd dx1(2), dx2(2);
+    dx1 << 1.0e-5/2, 0;
+    dx2 << 0, 1.0e-5/2;
 
     for (int i=0; i<n; i++) {
 
         bearingGuess(i) = geodesicInverse(crossGuess, siteCoord.row(i));
-//        if (std::isnan(bearingGuess(i))) {
-//            std::cout << " test1: " << crossGuess << std::endl;
-//            std::cout << " test2: " << siteCoord.row(i) << std::endl;
-//        }
 
-        VectorXd dx1(2), dx2(2);
-        dx1 << 1.0e-5/2, 0;
-        dx2 << 0, 1.0e-5/2;
-
-//        std::cout << n << " " << i << " test1: " << geodesicInverse(crossGuess - dx1, siteCoord.row(i)) << std::endl;
-//        std::cout << n << " " << i << " test1: " << geodesicInverse(crossGuess + dx1, siteCoord.row(i)) << std::endl;
-
-        double derivative1 = (-geodesicInverse(crossGuess - dx1, siteCoord.row(i)) + geodesicInverse(crossGuess + dx1, siteCoord.row(i)))/1.0e-5;
-        double derivative2 = (-geodesicInverse(crossGuess - dx2, siteCoord.row(i)) + geodesicInverse(crossGuess + dx2, siteCoord.row(i)))/1.0e-5;
-
-        G(i,0) = derivative1;
-        G(i,1) = derivative2;
+        J(i, 0) = (-geodesicInverse(crossGuess - dx1, siteCoord.row(i)) + geodesicInverse(crossGuess + dx1, siteCoord.row(i)))/1.0e-5;
+        J(i, 1) = (-geodesicInverse(crossGuess - dx2, siteCoord.row(i)) + geodesicInverse(crossGuess + dx2, siteCoord.row(i)))/1.0e-5;
 
         for (int j=0; j<n; j++) {N(i,j) = 0;}
         N(i,i) = sigma(i)*sigma(i);
     }
 
-    P = (G.transpose() * N.inverse() * G).inverse();
+    P = (J.transpose() * N.inverse() * J).inverse();
     bearingDiff << addBearings(bearingMeasured, -bearingGuess);
-    VectorXd crossDiff = (P * G.transpose() * N.inverse()) * bearingDiff;
+    VectorXd crossDiff = (P * J.transpose() * N.inverse()) * bearingDiff;
     crossImproved = crossGuess + crossDiff;
-
-//    std::cout << "BEARING DIFF: " << bearingDiff.transpose() << std::endl;
-//    std::cout << "CROSS GUESS: " << crossGuess.transpose() << std::endl;
-//    std::cout << "CROSS DIFF: " << crossDiff.transpose() << std::endl;
 
     //calculate the ellipse
     SelfAdjointEigenSolver<MatrixXd> eigensolver(P);
@@ -291,12 +306,12 @@ VectorXd solveIterationSphere(int n, MatrixXd siteCoord, VectorXd bearingMeasure
 VectorXd solveCross(int n, MatrixXd siteCoord, VectorXd siteBearings, VectorXd sigmas, VectorXd crossGuess, double* angle, double* ev1, double* ev2, double* fitStatus) {
     VectorXd crossImprovedOld;
     VectorXd crossImproved = crossGuess;
-    for(int iit=0; iit<6; iit++) {
+    for(int iit=0; iit<10; iit++) {
         crossImprovedOld = crossImproved;
         crossImproved = solveIterationSphere(n, siteCoord, siteBearings, sigmas, crossImproved, angle, ev1, ev2);
-//        std::cout << "CROSSDIFF " << iit << ": " << (crossImprovedOld - crossImproved).norm() << " - " << crossImprovedOld << std::endl;
         std::cout << "CROSSDIFF " << iit << ": " << (crossImprovedOld - crossImproved).norm() << " - " << crossImproved.transpose() << std::endl;
         if (std::isnan((crossImprovedOld - crossImproved).norm())) *fitStatus = 0;
+        if ((crossImprovedOld - crossImproved).norm() < 0.1) break;
     }
     return crossImproved;
 }
@@ -349,7 +364,7 @@ std::map<std::string, std::vector<double>> getEllipse(
     VectorXd crossImproved = solveCross(n, siteCoord, siteBearings, sigmas, crossGuess, &angle, &ev1, &ev2,&fitStatus[0]);
 
 //   double ellipsePoints[nEllipsePoints][2];
-    getEllipsePoints(nEllipsePoints, crossImproved, 1 * sqrt(-2 * log(1 - 0.95) * ev2), 1 * sqrt(-2 * log(1 - 0.95) * ev1), ellipse);
+    getEllipsePoints(nEllipsePoints, crossImproved, 1 * sqrt(-2 * log(1 - 0.95) * ev2), 1 * sqrt(-2 * log(1 - 0.95) * ev1), angle, ellipse);
     getBearingPoints(nBearingLinePoints ,siteCoord, siteBearings, sigmas, bearingLines);
 
     std::cout << "ELLIPSE: " << angle * 180/PI << ", " << ev1 << " " << ev2 << std::endl;

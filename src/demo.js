@@ -13,6 +13,15 @@ import LineString from 'ol/geom/LineString';
 import {transform} from 'ol/proj';
 import * as dum from '.';
 
+// import XYZ from 'ol/source/XYZ.js';
+// import View from 'ol/View.js';
+// import * as olProj from 'ol/proj.js';
+// // import Cesium from 'cesium/Cesium';
+// import Cesium from '../node_modules/cesium/Source/Cesium'
+// window.Cesium = Cesium; // expose Cesium to the OL-Cesium library
+// import('../node_modules/cesium/Source/Widgets/widgets.css');
+// import OLCesium from 'ol-cesium';
+
 let siteCoordsPtr, bearingsPtr, ellipsePtr, bearingLinesPtr;
 let siteLocations, bearings, ellipse, bearingLines;
 const nSites = 3;
@@ -20,7 +29,8 @@ const nEllipsePoints = 50;
 const nBearingLinePoints = 25;
 let measuredBearings, sigma, bias;
 
-const dfSites = [{lon: 10, lat: 55},{lon: 15, lat: 60},{lon: 15, lat: 62}];
+const dfSites = [{lon: 13, lat: 55},{lon: 18, lat: 57},{lon: 19, lat: 65}];
+// const dfSites = [{lon: 10, lat: 55},{lon: 15, lat: 60},{lon: 15, lat: 62}];
 // const dfSites = [{lon: 10, lat: 55},{lon: 15, lat: 60},{lon: 15, lat: 62},{lon: 10, lat: 65}];
 // const dfSites = [{lon: 10, lat: 55},{lon: 15, lat: 60},{lon: 15, lat: 62},{lon: 10, lat: 65},{lon: 12, lat: 63}];
 
@@ -34,7 +44,8 @@ let module = null;
     bearingsPtr = module._malloc(2*nSites*64);
     bearings = new Float64Array(module.HEAPU8.buffer, bearingsPtr, 2*nSites);
 
-    siteLocations.set([10, 55, 15, 60, 15, 62]);
+    siteLocations.set([13, 55, 18, 57, 19, 65]);
+    // siteLocations.set([10, 55, 15, 60, 15, 62]);
     // siteLocations.set([10, 55, 15, 60, 15, 62, 10, 65]);
     // siteLocations.set([10, 55, 15, 60, 15, 62, 10, 65, 12, 63]);
 
@@ -56,6 +67,10 @@ function zipLatLon(linePoints, startLat, startLon, n) {
 let nShots = 0;
 let nHits = 0;
 
+// $('<button id="3dButton">3D</button>').on('click', event => {
+//     ol3d.setEnabled(!ol3d.getEnabled());
+// }).appendTo('body');
+
 $('<button id="gbButton">get bearings</button>').on('click', event => {
 
     nShots++;
@@ -63,6 +78,13 @@ $('<button id="gbButton">get bearings</button>').on('click', event => {
     bearingSource.getFeatures().forEach(f => {
         bearingSource.removeFeature(f);
     });
+
+    // const lonWidth = 0; const lonMean = 36; const latWidth = 0; const latMean = 67;
+    // const lonWidth = 0; const lonMean = -8; const latWidth = 0; const latMean = 69;
+    // const lonWidth = 0; const lonMean = -2; const latWidth = 0; const latMean = 57;
+    // const lonWidth = 0; const lonMean = 23; const latWidth = 0; const latMean = 56;
+    // const lonWidth = 0; const lonMean = 35; const latWidth = 0; const latMean = 71;
+    // const lonWidth = 0; const lonMean = 2; const latWidth = 0; const latMean = 46;
 
     const lonWidth = 50; const lonMean = -10; const latWidth = 30; const latMean = 45;
     // const lonWidth = 0; const lonMean = 10; const latWidth = 0; const latMean = 65;
@@ -77,9 +99,10 @@ $('<button id="gbButton">get bearings</button>').on('click', event => {
         return module.getBearing(s.lon, s.lat, crossCoord[0], crossCoord[1]);
     });
     measuredBearings = correctBearings.map((cb, i) => cb + sigma[i]*nrandom() + bias[i]*nrandom());
+    // measuredBearings = correctBearings.map((cb, i) => cb + 0*nrandom() + bias[i]*nrandom());
 
 
-    const crossGeometry = new Circle(transform(crossCoord, 'EPSG:4326', 'EPSG:3857'), 40000);
+    const crossGeometry = new Circle(transform(crossCoord, 'EPSG:4326', 'EPSG:3857'), 30000);
     const crossFeature = new Feature({
         name: 'cross',
         geometry: crossGeometry,
@@ -186,11 +209,11 @@ $('<button id="gbButton">get bearings</button>').on('click', event => {
         if (ellipseGeometry.intersectsCoordinate(transform(crossCoord, 'EPSG:4326', 'EPSG:3857'))) {
             nHits++;
         }
-        console.log(nHits/nShots);
+        console.log('HIIIIT', nHits/nShots);
     }
     else {
         console.error('FIT PROBLEM!', fitOk, ellipseParameters.get(3), ellipseParameters.get(4));
-        $('#gbButton').hide();
+        // $('#gbButton').hide();
     }
 
     module._free(ellipsePtr);
@@ -207,7 +230,6 @@ const bearingLayer  = new VectorLayer({
 });
 
 const map = new ol.Map({
-
     target: mapdiv[0],
     layers: [
         new TileLayer({
@@ -221,3 +243,29 @@ const map = new ol.Map({
         zoom: 4
     })
 });
+
+// let tileWorldImagery = new TileLayer({
+//     source: new XYZ({
+//         url: 'http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+//         crossOrigin: 'Anonymous',
+//     })
+// });
+// const map = new ol.Map({
+//     target: mapdiv[0],
+//     projection: 'EPSG:3857',
+//     layers: [
+//         // tileWorldImagery
+//         new TileLayer({
+//             source: new OSM(),
+//         }),
+//         bearingLayer
+//     ],
+//     view: new View({
+//         center: transform([20, 60], 'EPSG:4326', 'EPSG:3857'),
+//         zoom: 4,
+//         minZoom: 2,
+//     }),
+// });
+// const ol3d = new OLCesium({map: map}); // map is the ol.Map instance
+// ol3d.setEnabled(false);
+// window.ol3d = ol3d; // temporary hack for easy console debugging
