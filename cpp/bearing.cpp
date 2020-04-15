@@ -57,6 +57,7 @@ Vector3d bearingPlane(Vector2d location, double bearing) {
     return bearingPlaneNormal;
 }
 
+//Get the location where two bearings cross each other
 Vector4d bearingCrossLocation(Vector2d location1, double bearing1, Vector2d location2, double bearing2) {
     Vector3d bp1 = bearingPlane(location1, bearing1);
     Vector3d bp2 = bearingPlane(location2, bearing2);
@@ -211,8 +212,8 @@ MatrixXd getAllCrosses(int nSites, MatrixXd siteCoord, VectorXd siteBearings) {
     return crossCoordinates;
 }
 
-//VectorXd getCrossGuess(int nSites, MatrixXd crossCoordinates) {
-VectorXd getCrossGuess(int nSites, MatrixXd crossCoordinates) {
+//Guess the fix location based on the coordiantes of all the n(n-1)/ crosses
+VectorXd getFixGuess(int nSites, MatrixXd crossCoordinates) {
 
     VectorXd guess(2);
     int nComb = nSites * (nSites - 1) / 2;
@@ -303,7 +304,7 @@ VectorXd solveIterationSphere(int n, MatrixXd siteCoord, VectorXd bearingMeasure
     return crossImproved;
 }
 
-VectorXd solveCross(int n, MatrixXd siteCoord, VectorXd siteBearings, VectorXd sigmas, VectorXd crossGuess, double* angle, double* ev1, double* ev2, double* fitStatus) {
+VectorXd getFixEstimate(int n, MatrixXd siteCoord, VectorXd siteBearings, VectorXd sigmas, VectorXd crossGuess, double* angle, double* ev1, double* ev2, double* fitStatus) {
     VectorXd crossImprovedOld;
     VectorXd crossImproved = crossGuess;
     for(int iit=0; iit<10; iit++) {
@@ -353,7 +354,7 @@ std::map<std::string, std::vector<double>> getEllipse(
     MatrixXd crossCoordinates = getAllCrosses(n, siteCoord, siteBearings);
 
     //initial guess of cross position
-    VectorXd crossGuess = getCrossGuess(n, crossCoordinates);
+    VectorXd crossGuess = getFixGuess(n, crossCoordinates);
 
     std::vector<double> fitStatus(1);
     fitStatus[0] = 1;
@@ -361,7 +362,7 @@ std::map<std::string, std::vector<double>> getEllipse(
     double angle, ev1, ev2;
     std::map<std::string, VectorXd> result;
 
-    VectorXd crossImproved = solveCross(n, siteCoord, siteBearings, sigmas, crossGuess, &angle, &ev1, &ev2,&fitStatus[0]);
+    VectorXd crossImproved = getFixEstimate(n, siteCoord, siteBearings, sigmas, crossGuess, &angle, &ev1, &ev2,&fitStatus[0]);
 
 //   double ellipsePoints[nEllipsePoints][2];
     getEllipsePoints(nEllipsePoints, crossImproved, 1 * sqrt(-2 * log(1 - 0.95) * ev2), 1 * sqrt(-2 * log(1 - 0.95) * ev1), angle, ellipse);
