@@ -116,7 +116,6 @@ void getEllipsePoints(int n, Vector2d center, double major, double minor, double
     std::cout << "MAJOR: " << major << std::endl;
     std::cout << "MINOR: " << minor << std::endl;
     std::cout << "CENTER: " << center.transpose() << std::endl;
-    std::cout << "MERCDIFF: " << tan(M_PI/4 + center[1]*M_PI/180/2) << std::endl;
 
     for (int i=0; i<n; i++) {
         Vector2d x, ellps;
@@ -124,7 +123,7 @@ void getEllipsePoints(int n, Vector2d center, double major, double minor, double
         x << b*cos(2*M_PI*i/n), a*sin(2*M_PI*i/n);
         Vector2d xrot = ellipseBaseVectors.inverse() * x;
 
-        //conpensate for mercator projection
+        //compensate for mercator projection
         double mercDiff = tan(M_PI/4 + (xrot(1))*M_PI/180/2);
 //        std::cout << "MERCDIFF: " << mercDiff << std::endl;
         xrot(1) = xrot(1)/mercDiff;

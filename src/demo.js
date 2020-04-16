@@ -24,36 +24,37 @@ import * as dum from '.';
 
 let siteCoordsPtr, bearingsPtr, ellipsePtr, bearingLinesPtr;
 let siteLocations, bearings, ellipse, bearingLines;
-const nSites = 3;
 const nEllipsePoints = 50;
 const nBearingLinePoints = 25;
 let measuredBearings, sigma, bias;
 
-// const dfSites = [{lon: 13, lat: 55},{lon: 18, lat: 57}];
-const dfSites = [{lon: 13, lat: 55},{lon: 18, lat: 57},{lon: 19, lat: 65}];
-// const dfSites = [{lon: 10, lat: 55},{lon: 15, lat: 60},{lon: 15, lat: 62}];
-// const dfSites = [{lon: 10, lat: 55},{lon: 15, lat: 60},{lon: 15, lat: 62},{lon: 10, lat: 65}];
-// const dfSites = [{lon: 10, lat: 55},{lon: 15, lat: 60},{lon: 15, lat: 62},{lon: 10, lat: 65},{lon: 12, lat: 63}];
+// const dfSites = [{lon: 13, lat: 55},{lon: 18, lat: 57}]; sigma = [2,2]; bias = [0,0];
+const dfSites = [{lon: 13, lat: 55},{lon: 18, lat: 57},{lon: 19, lat: 65}]; sigma = [2,2,2]; bias = [0,0,0];
+// const dfSites = [{lon: 10, lat: 55},{lon: 15, lat: 60},{lon: 15, lat: 62}]; sigma = [2,2,2]; bias = [0,0,0];
+// const dfSites = [{lon: 10, lat: 55},{lon: 15, lat: 60},{lon: 15, lat: 62},{lon: 10, lat: 65}]; sigma = [2,2,2,2]; bias = [0,0,0,0];
+// const dfSites = [{lon: 10, lat: 55},{lon: 15, lat: 60},{lon: 15, lat: 62},{lon: 10, lat: 65},{lon: 12, lat: 63}]; sigma = [2,2,2,2,2]; bias = [0,0,0,0,0];
 
-let module = null;
-(async () => {
-    module = await dum.loadWasmModule('bearing')
+const nSites = dfSites.length;
 
-    console.log('MMMMMMMMMM', module);
+// let module = null;
+let bearingMod = null;
+bearingMod = dum.loadModule({dfSites: dfSites}).then(bm => bearingMod = bm);
 
-    siteCoordsPtr = module._malloc(2*nSites*64);
-    siteLocations = new Float64Array(module.HEAPU8.buffer, siteCoordsPtr, 2*nSites);
-
-    bearingsPtr = module._malloc(2*nSites*64);
-    bearings = new Float64Array(module.HEAPU8.buffer, bearingsPtr, 2*nSites);
-
-    // siteLocations.set([13, 55, 18, 57]);
-    siteLocations.set([13, 55, 18, 57, 19, 65]);
-    // siteLocations.set([10, 55, 15, 60, 15, 62]);
-    // siteLocations.set([10, 55, 15, 60, 15, 62, 10, 65]);
-    // siteLocations.set([10, 55, 15, 60, 15, 62, 10, 65, 12, 63]);
-
-})()
+// (async () => {
+//     // module = await dum.loadWasmModule('bearing')
+//     // siteCoordsPtr = module._malloc(2*nSites*64);
+//     // siteLocations = new Float64Array(module.HEAPU8.buffer, siteCoordsPtr, 2*nSites);
+//     // bearingsPtr = module._malloc(2*nSites*64);
+//     // bearings = new Float64Array(module.HEAPU8.buffer, bearingsPtr, 2*nSites);
+//
+//     // siteLocations.set([13, 55, 18, 57]);
+//     // siteLocations.set([13, 55, 18, 57, 19, 65]);
+//     // siteLocations.set([10, 55, 15, 60, 15, 62]);
+//     // siteLocations.set([10, 55, 15, 60, 15, 62, 10, 65]);
+//     // siteLocations.set([10, 55, 15, 60, 15, 62, 10, 65, 12, 63]);
+//
+//     bearingMod = await dum.loadModule({dfSites: dfSites});
+// })()
 
 function nrandom() {
     let u=0, v=0;
@@ -75,34 +76,22 @@ let nHits = 0;
 //     ol3d.setEnabled(!ol3d.getEnabled());
 // }).appendTo('body');
 
-$('<button id="gbButton">get bearings</button>').on('click', event => {
 
-    nShots++;
+function generateBearings(crossCoord) {
+
 
     bearingSource.getFeatures().forEach(f => {
         bearingSource.removeFeature(f);
     });
 
-    // const lonWidth = 0; const lonMean = 36; const latWidth = 0; const latMean = 67;
-    // const lonWidth = 0; const lonMean = -8; const latWidth = 0; const latMean = 69;
-    // const lonWidth = 0; const lonMean = -2; const latWidth = 0; const latMean = 57;
-    // const lonWidth = 0; const lonMean = 23; const latWidth = 0; const latMean = 56;
-    // const lonWidth = 0; const lonMean = 35; const latWidth = 0; const latMean = 71;
-    // const lonWidth = 0; const lonMean = 2; const latWidth = 0; const latMean = 46;
-    // const lonWidth = 0; const lonMean = 30; const latWidth = 0; const latMean = 46;
+    nShots++;
 
-    const lonWidth = 50; const lonMean = -10; const latWidth = 30; const latMean = 45;
-    // const lonWidth = 0; const lonMean = 10; const latWidth = 0; const latMean = 65;
-    // const lonWidth = 0; const lonMean = 35; const latWidth = 0; const latMean = 70;
-    // const lonWidth = 2, lonMean = 61, latWidth = 4, latMean = 8;
-    // const crossCoord = [latWidth*Math.random()+latMean, lonWidth*Math.random()+latMean];
-    const crossCoord = [lonWidth*Math.random()+lonMean, latWidth*Math.random()+latMean];
+    // const correctBearings = dfSites.map(s => {
+    //     return module.getBearing(s.lon, s.lat, crossCoord[0], crossCoord[1]);
+    // });
+    const correctBearings = bearingMod.getBearings(crossCoord[0], crossCoord[1]);
 
-    sigma = [2,2,2];
-    bias = [0,0,0];
-    const correctBearings = dfSites.map(s => {
-        return module.getBearing(s.lon, s.lat, crossCoord[0], crossCoord[1]);
-    });
+
     measuredBearings = correctBearings.map((cb, i) => cb + sigma[i]*nrandom() + bias[i]*nrandom());
     // measuredBearings = correctBearings.map((cb, i) => cb + 0*nrandom() + bias[i]*nrandom());
 
@@ -119,26 +108,32 @@ $('<button id="gbButton">get bearings</button>').on('click', event => {
     }));
     bearingSource.addFeature(crossFeature);
 
-
-    ellipsePtr = module._malloc(2*nEllipsePoints*64);
-    ellipse = new Float64Array(module.HEAPU8.buffer, ellipsePtr, 2*nEllipsePoints);
-
-    bearingLinesPtr = module._malloc(nSites*3*2*nBearingLinePoints*64);
-    bearingLines = new Float64Array(module.HEAPU8.buffer, bearingLinesPtr, nSites*3*2*nBearingLinePoints);
-
-    bearings.set(measuredBearings.concat(sigma));
+    // ellipsePtr = module._malloc(2*nEllipsePoints*64);
+    // ellipse = new Float64Array(module.HEAPU8.buffer, ellipsePtr, 2*nEllipsePoints);
+    //
+    // bearingLinesPtr = module._malloc(nSites*3*2*nBearingLinePoints*64);
+    // bearingLines = new Float64Array(module.HEAPU8.buffer, bearingLinesPtr, nSites*3*2*nBearingLinePoints);
+    //
+    // bearings.set(measuredBearings.concat(sigma));
 
     let fitOk;
     let crossGuess;
     let ellipseParameters;
     const time = Date.now();
+    let bearingLines;
+    let ellipse;
     try {
-        const data = module.getEllipse(nSites, siteCoordsPtr, bearingsPtr, nEllipsePoints, nBearingLinePoints, ellipsePtr, bearingLinesPtr);
+        // const data = module.getEllipse(nSites, siteCoordsPtr, bearingsPtr, nEllipsePoints, nBearingLinePoints, ellipsePtr, bearingLinesPtr);
+        const dummy = bearingMod.getFixEstimate(measuredBearings, sigma, nEllipsePoints, nBearingLinePoints);
+        const data = dummy.metaData;
+        ellipse = dummy.ellipse;
+        bearingLines = dummy.bearingLines;
+
         fitOk = data.get('fitStatus').get(0);
         crossGuess = data.get('crossGuess');
         ellipseParameters = data.get('ellipseParameters');
 
-        const crossGeometry = new Circle(transform([crossGuess.get(0), crossGuess.get(1)], 'EPSG:4326', 'EPSG:3857'), 40000);
+        const crossGeometry = new Circle(transform([crossGuess.get(0), crossGuess.get(1)], 'EPSG:4326', 'EPSG:3857'), 30000);
         const crossFeature = new Feature({
             name: 'crossGuess',
             geometry: crossGeometry,
@@ -221,8 +216,32 @@ $('<button id="gbButton">get bearings</button>').on('click', event => {
         // $('#gbButton').hide();
     }
 
-    module._free(ellipsePtr);
-    module._free(bearingLinesPtr);
+    bearingMod.free();
+    // module._free(ellipsePtr);
+    // module._free(bearingLinesPtr);
+}
+
+$('<button id="gbButton">get bearings</button>').on('click', event => {
+
+
+    // const lonWidth = 0; const lonMean = 36; const latWidth = 0; const latMean = 67;
+    // const lonWidth = 0; const lonMean = -8; const latWidth = 0; const latMean = 69;
+    // const lonWidth = 0; const lonMean = -2; const latWidth = 0; const latMean = 57;
+    // const lonWidth = 0; const lonMean = 23; const latWidth = 0; const latMean = 56;
+    // const lonWidth = 0; const lonMean = 35; const latWidth = 0; const latMean = 71;
+    // const lonWidth = 0; const lonMean = 2; const latWidth = 0; const latMean = 46;
+    // const lonWidth = 0; const lonMean = 30; const latWidth = 0; const latMean = 46;
+    // const lonWidth = 0; const lonMean = 24; const latWidth = 0; const latMean = 55;
+
+    const lonWidth = 50; const lonMean = -10; const latWidth = 30; const latMean = 45;
+    // const lonWidth = 0; const lonMean = 10; const latWidth = 0; const latMean = 65;
+    // const lonWidth = 0; const lonMean = 35; const latWidth = 0; const latMean = 70;
+    // const lonWidth = 2, lonMean = 61, latWidth = 4, latMean = 8;
+    // const crossCoord = [latWidth*Math.random()+latMean, lonWidth*Math.random()+latMean];
+
+    const crossCoord = [lonWidth*Math.random()+lonMean, latWidth*Math.random()+latMean];
+
+    generateBearings(crossCoord);
 
 }).appendTo('body');
 
@@ -247,6 +266,10 @@ const map = new ol.Map({
         // center: [0,0],
         zoom: 4
     })
+});
+
+map.on('click', function (evt) {
+    generateBearings(transform(evt.coordinate, 'EPSG:3857', 'EPSG:4326'));
 });
 
 // let tileWorldImagery = new TileLayer({
