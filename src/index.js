@@ -35,17 +35,15 @@ class Bearing {
         this.nSites = config.dfSites.length;
 
         this.siteCoordsPtr = this.module._malloc(2*this.nSites*64);
-        this.siteLocations = new Float64Array(this.module.HEAPU8.buffer, this.siteCoordsPtr, 2*this.nSites);
-
-        this.siteLocations.set(this.dfSites.reduce((res, site) => {
-            res = [...res, ...[site.lon, site.lat]];
-            return res;
-        }, []));
-
-        console.log(this.siteLocations);
+        this.siteCoords = new Float64Array(this.module.HEAPU8.buffer, this.siteCoordsPtr, 2*this.nSites);
 
         this.bearingsPtr = this.module._malloc(2*this.nSites*64);
         this.bearings = new Float64Array(this.module.HEAPU8.buffer, this.bearingsPtr, 2*this.nSites);
+
+        this.siteCoords.set(this.dfSites.reduce((res, site) => {
+            res = [...res, ...[site.lon, site.lat]];
+            return res;
+        }, []));
     }
 
     getBearings(lon, lat) {
@@ -74,7 +72,7 @@ class Bearing {
 
     resetBuffers() {
         this.siteCoordsPtr = this.module._malloc(2*this.nSites*64);
-        this.siteLocations = new Float64Array(this.module.HEAPU8.buffer, this.siteCoordsPtr, 2*this.nSites);
+        this.siteCoords = new Float64Array(this.module.HEAPU8.buffer, this.siteCoordsPtr, 2*this.nSites);
 
         this.bearingsPtr = this.module._malloc(2*this.nSites*64);
         this.bearings = new Float64Array(this.module.HEAPU8.buffer, this.bearingsPtr, 2*this.nSites);

@@ -36,25 +36,8 @@ const dfSites = [{lon: 13, lat: 55},{lon: 18, lat: 57},{lon: 19, lat: 65}]; sigm
 
 const nSites = dfSites.length;
 
-// let module = null;
 let bearingMod = null;
 bearingMod = dum.loadModule({dfSites: dfSites}).then(bm => bearingMod = bm);
-
-// (async () => {
-//     // module = await dum.loadWasmModule('bearing')
-//     // siteCoordsPtr = module._malloc(2*nSites*64);
-//     // siteLocations = new Float64Array(module.HEAPU8.buffer, siteCoordsPtr, 2*nSites);
-//     // bearingsPtr = module._malloc(2*nSites*64);
-//     // bearings = new Float64Array(module.HEAPU8.buffer, bearingsPtr, 2*nSites);
-//
-//     // siteLocations.set([13, 55, 18, 57]);
-//     // siteLocations.set([13, 55, 18, 57, 19, 65]);
-//     // siteLocations.set([10, 55, 15, 60, 15, 62]);
-//     // siteLocations.set([10, 55, 15, 60, 15, 62, 10, 65]);
-//     // siteLocations.set([10, 55, 15, 60, 15, 62, 10, 65, 12, 63]);
-//
-//     bearingMod = await dum.loadModule({dfSites: dfSites});
-// })()
 
 function nrandom() {
     let u=0, v=0;
@@ -76,7 +59,6 @@ let nHits = 0;
 //     ol3d.setEnabled(!ol3d.getEnabled());
 // }).appendTo('body');
 
-
 function generateBearings(crossCoord) {
 
 
@@ -86,15 +68,10 @@ function generateBearings(crossCoord) {
 
     nShots++;
 
-    // const correctBearings = dfSites.map(s => {
-    //     return module.getBearing(s.lon, s.lat, crossCoord[0], crossCoord[1]);
-    // });
     const correctBearings = bearingMod.getBearings(crossCoord[0], crossCoord[1]);
-
 
     measuredBearings = correctBearings.map((cb, i) => cb + sigma[i]*nrandom() + bias[i]*nrandom());
     // measuredBearings = correctBearings.map((cb, i) => cb + 0*nrandom() + bias[i]*nrandom());
-
 
     const crossGeometry = new Circle(transform(crossCoord, 'EPSG:4326', 'EPSG:3857'), 30000);
     const crossFeature = new Feature({
@@ -108,14 +85,6 @@ function generateBearings(crossCoord) {
     }));
     bearingSource.addFeature(crossFeature);
 
-    // ellipsePtr = module._malloc(2*nEllipsePoints*64);
-    // ellipse = new Float64Array(module.HEAPU8.buffer, ellipsePtr, 2*nEllipsePoints);
-    //
-    // bearingLinesPtr = module._malloc(nSites*3*2*nBearingLinePoints*64);
-    // bearingLines = new Float64Array(module.HEAPU8.buffer, bearingLinesPtr, nSites*3*2*nBearingLinePoints);
-    //
-    // bearings.set(measuredBearings.concat(sigma));
-
     let fitOk;
     let crossGuess;
     let ellipseParameters;
@@ -123,7 +92,7 @@ function generateBearings(crossCoord) {
     let bearingLines;
     let ellipse;
     try {
-        // const data = module.getEllipse(nSites, siteCoordsPtr, bearingsPtr, nEllipsePoints, nBearingLinePoints, ellipsePtr, bearingLinesPtr);
+
         const dummy = bearingMod.getFixEstimate(measuredBearings, sigma, nEllipsePoints, nBearingLinePoints);
         const data = dummy.metaData;
         ellipse = dummy.ellipse;
@@ -217,8 +186,6 @@ function generateBearings(crossCoord) {
     }
 
     bearingMod.free();
-    // module._free(ellipsePtr);
-    // module._free(bearingLinesPtr);
 }
 
 $('<button id="gbButton">get bearings</button>').on('click', event => {
