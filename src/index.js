@@ -1,5 +1,5 @@
 const exports = {
-    bearing: ['getBearing', 'getEllipse', '_malloc', 'HEAPU8', '_free'],
+    bearing: ['getBearing', 'getEllipse', '_malloc', 'HEAPU8', '_free', 'testFunc'],
     fft: []
 };
 
@@ -17,7 +17,6 @@ export function loadWasmModule(moduleName) {
                 // bearingsPtr = module._malloc(2*nSites*64);
                 // bearings = new Float64Array(module.HEAPU8.buffer, bearingsPtr, 2*nSites);
                 //
-                console.log('MMMMMMMMMM', mod)
                 const exportedFunctions = {};
                 exports[moduleName].map(modName => {
                     exportedFunctions[modName] = mod[modName];
@@ -28,10 +27,10 @@ export function loadWasmModule(moduleName) {
     })
 }
 
-loadWasmModule('bearing').then(bearingMod => {
-    console.log(bearingMod.getBearing(60,40,60,40.001));
-})
-
-loadWasmModule('fft').then(fftMod => {
-    console.log(fftMod);
-})
+// loadWasmModule('bearing').then(bearingMod => {
+//     console.log(bearingMod.getBearing(60,40,60,40.001));
+// })
+//
+// loadWasmModule('fft').then(fftMod => {
+//     console.log(fftMod);
+// })

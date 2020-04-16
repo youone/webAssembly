@@ -107,35 +107,41 @@ void getEllipsePoints(int n, Vector2d center, double major, double minor, double
 //    ellipseBaseVectors = finalEigenvecs;
 //    a=minor; b=major;
 
-//    double theta2 = -asin(finalEigenvecs(1,1));
-//    double theta2 = asin(ellipseBaseVectors(1,1));
     Vector2d xtest;
-    xtest << 1,0;
+    xtest << 0,1;
     Vector2d xtestrot = ellipseBaseVectors * xtest;
-    double theta2 = acos(xtest.dot(xtestrot)) - 18*M_PI/180;
+    double theta2 = acos(xtest.dot(xtestrot)) - M_PI/2;
 //    double theta2 = 45*M_PI/180;
     std::cout << "THETA: " << -asin(ellipseBaseVectors(1,1))*180/M_PI << " " << theta2*180/M_PI << std::endl;
     std::cout << "MAJOR: " << major << std::endl;
     std::cout << "MINOR: " << minor << std::endl;
+    std::cout << "CENTER: " << center.transpose() << std::endl;
+    std::cout << "MERCDIFF: " << tan(M_PI/4 + center[1]*M_PI/180/2) << std::endl;
 
     for (int i=0; i<n; i++) {
-        Vector2d x, el;
+        Vector2d x, ellps;
+
         x << b*cos(2*M_PI*i/n), a*sin(2*M_PI*i/n);
         Vector2d xrot = ellipseBaseVectors.inverse() * x;
 
-        el = x + center.reverse();
-        Vector3d X = geographic2cartesian(el);
+        //conpensate for mercator projection
+        double mercDiff = tan(M_PI/4 + (xrot(1))*M_PI/180/2);
+//        std::cout << "MERCDIFF: " << mercDiff << std::endl;
+        xrot(1) = xrot(1)/mercDiff;
+
+        ellps = x + center.reverse();
+        Vector3d X = geographic2cartesian(ellps);
         Vector3d U = geographic2cartesian(center.reverse());
         Vector3d Xrot =  U * U.dot(X) + cos(theta2) * (U.cross(X)).cross(U) + sin(theta2) * U.cross(X);
-//        std::cout << "X   : " << X.transpose() << std::endl;
 //        std::cout << "Xrot: " << Xrot.transpose() << std::endl;
-        Vector2d elrot = cartesian2geographic(Xrot);
+        Vector2d ellpsrot = cartesian2geographic(Xrot);
 
-//        result[i] = elrot(0);
-//        result[i + n] = elrot(1);
+//        result[i] = ellpsrot(0);
+//        result[i + n] = ellpsrot(1);
 
 //        result[i] = xrot(1);
 //        result[i + n] = xrot(0);
+
         result[i] = center[1] + xrot(1);
         result[i + n] = center[0] + xrot(0);
 
@@ -218,6 +224,13 @@ VectorXd getFixGuess(int nSites, MatrixXd crossCoordinates) {
     VectorXd guess(2);
     int nComb = nSites * (nSites - 1) / 2;
     double crossMeanLat, crossMeanLon, crossMinDistance=1000000;
+
+    if (nSites == 2) {
+        guess << crossCoordinates(0,1), crossCoordinates(0,0);
+        std::cout << "FIX GUESS: " << guess.transpose() << std::endl;
+        return guess;
+    }
+
     for(int i=0; i<nComb; i++) {
         for(int j=0; j<nComb; j++) {
             if (i < j) {
@@ -244,7 +257,8 @@ VectorXd getFixGuess(int nSites, MatrixXd crossCoordinates) {
     }
 
     guess << crossMeanLon, crossMeanLat;
-//    guess << 1, 2;
+    std::cout << "FIX GUESS: " << guess.transpose() << std::endl;
+
     return guess;
 }
 

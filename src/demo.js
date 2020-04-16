@@ -29,6 +29,7 @@ const nEllipsePoints = 50;
 const nBearingLinePoints = 25;
 let measuredBearings, sigma, bias;
 
+// const dfSites = [{lon: 13, lat: 55},{lon: 18, lat: 57}];
 const dfSites = [{lon: 13, lat: 55},{lon: 18, lat: 57},{lon: 19, lat: 65}];
 // const dfSites = [{lon: 10, lat: 55},{lon: 15, lat: 60},{lon: 15, lat: 62}];
 // const dfSites = [{lon: 10, lat: 55},{lon: 15, lat: 60},{lon: 15, lat: 62},{lon: 10, lat: 65}];
@@ -38,12 +39,15 @@ let module = null;
 (async () => {
     module = await dum.loadWasmModule('bearing')
 
+    console.log('MMMMMMMMMM', module);
+
     siteCoordsPtr = module._malloc(2*nSites*64);
     siteLocations = new Float64Array(module.HEAPU8.buffer, siteCoordsPtr, 2*nSites);
 
     bearingsPtr = module._malloc(2*nSites*64);
     bearings = new Float64Array(module.HEAPU8.buffer, bearingsPtr, 2*nSites);
 
+    // siteLocations.set([13, 55, 18, 57]);
     siteLocations.set([13, 55, 18, 57, 19, 65]);
     // siteLocations.set([10, 55, 15, 60, 15, 62]);
     // siteLocations.set([10, 55, 15, 60, 15, 62, 10, 65]);
@@ -85,6 +89,7 @@ $('<button id="gbButton">get bearings</button>').on('click', event => {
     // const lonWidth = 0; const lonMean = 23; const latWidth = 0; const latMean = 56;
     // const lonWidth = 0; const lonMean = 35; const latWidth = 0; const latMean = 71;
     // const lonWidth = 0; const lonMean = 2; const latWidth = 0; const latMean = 46;
+    // const lonWidth = 0; const lonMean = 30; const latWidth = 0; const latMean = 46;
 
     const lonWidth = 50; const lonMean = -10; const latWidth = 30; const latMean = 45;
     // const lonWidth = 0; const lonMean = 10; const latWidth = 0; const latMean = 65;
