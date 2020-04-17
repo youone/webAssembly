@@ -61,13 +61,15 @@ class Bearing {
 
         this.bearings.set(bearings.concat(sigmas));
 
-        const data = this.module.getEllipse(this.nSites, this.siteCoordsPtr, this.bearingsPtr, nEllipsePoints, nBearingLinePoints, this.ellipsePtr, this.bearingLinesPtr);
-
-        return {
-            metaData: data,
-            ellipse: ellipse,
-            bearingLines: bearingLines,
+        let metaData;
+        try {
+            metaData = this.module.getEllipse(this.nSites, this.siteCoordsPtr, this.bearingsPtr, nEllipsePoints, nBearingLinePoints, this.ellipsePtr, this.bearingLinesPtr);
         }
+        catch (e) {
+            console.error(e);
+        }
+
+        return {metaData, ellipse, bearingLines}
     }
 
     resetBuffers() {

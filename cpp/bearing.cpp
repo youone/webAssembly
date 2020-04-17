@@ -284,7 +284,7 @@ VectorXd addBearings(VectorXd b1, VectorXd b2) {
 
 VectorXd solveIterationSphere(int n, MatrixXd siteCoord, VectorXd bearingMeasured, VectorXd sigma, VectorXd crossGuess, double* angle, double* ev1, double* ev2) {
 
-    MatrixXd J(n, 2), JJ(n, 2), P, bearingDiff(n, 1), eigenvectors, N(n,n);
+    MatrixXd J(n, 2), P, bearingDiff(n, 1), eigenvectors, N(n,n);
     VectorXd bearingGuess(n), bearingGuessPdiff1(n), bearingGuessNdiff1(n), bearingGuessPdiff2(n), bearingGuessNdiff2(n), crossImproved(2), dx1(2), dx2(2);
 
     dx1 << 1.0e-5, 0;
@@ -300,8 +300,6 @@ VectorXd solveIterationSphere(int n, MatrixXd siteCoord, VectorXd bearingMeasure
 
         J(i, 0) = (-bearingGuess(i) + bearingGuessPdiff1(i))/1.0e-5;
         J(i, 1) = (-bearingGuess(i) + bearingGuessPdiff2(i))/1.0e-5;
-//        JJ(i, 0) = (-2*bearingGuess(i) + bearingGuessPdiff1(i) + bearingGuessNdiff1(i))/1.0e-10;
-//        JJ(i, 1) = (-2*bearingGuess(i) + bearingGuessPdiff2(i) + bearingGuessNdiff2(i))/1.0e-10;
 
         for (int j=0; j<n; j++) {N(i,j) = 0;}
         N(i,i) = sigma(i)*sigma(i);
@@ -324,8 +322,7 @@ VectorXd solveIterationSphere(int n, MatrixXd siteCoord, VectorXd bearingMeasure
 
     finalEigenvecs = eigenvectors;
 
-    std::cout << "JJ: " << std::endl << (P * J.transpose() * N.inverse()) << std::endl;
-//    std::cout << "JJ: " << std::endl << JJ << std::endl;
+//    std::cout << "J: " << std::endl << J << std::endl;
 //    std::cout << "N: " << std::endl << N << std::endl;
 //    std::cout << "P: " << std::endl << P << std::endl;
 //    std::cout << "EV: " << std::endl << eigenvectors << std::endl;
@@ -349,9 +346,13 @@ VectorXd getFixEstimate(int n, MatrixXd siteCoord, VectorXd siteBearings, Vector
         if (crossMove < 0.01) break;
     }
 
+    double chi2;
     for (int iSite=0; iSite<n; iSite++) {
-        std::cout << "FIX BEARING: " << addBearing(getBearing(siteCoord(iSite,0), siteCoord(iSite,1), crossImproved(0), crossImproved(1)), -siteBearings(iSite)) << std::endl;
+        double bearingMeanOffset = addBearing(getBearing(siteCoord(iSite, 0), siteCoord(iSite, 1), crossImproved(0), crossImproved(1)), -siteBearings(iSite));
+        chi2 += pow(bearingMeanOffset, 2) / sigmas(iSite);
+//        std::cout << "FIX BEARING: " << sigmas(iSite) << " " << bearingMeanOffset << std::endl;
     }
+    std::cout << "CHI2: " << chi2/n << std::endl;
 
     return crossImproved;
 }

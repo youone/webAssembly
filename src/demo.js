@@ -110,27 +110,15 @@ function generateBearings(crossCoord) {
     let crossGuess;
     let ellipseParameters;
     const time = Date.now();
-    let bearingLines;
-    let ellipse;
-    try {
 
-        const dummy = bearingMod.getFixEstimate(measuredBearings, sigma, nEllipsePoints, nBearingLinePoints);
-        const data = dummy.metaData;
-        ellipse = dummy.ellipse;
-        bearingLines = dummy.bearingLines;
+    let {metaData, ellipse, bearingLines} = bearingMod.getFixEstimate(measuredBearings, sigma, nEllipsePoints, nBearingLinePoints);
 
-        fitOk = data.get('fitStatus').get(0);
-        crossGuess = data.get('crossGuess');
-        ellipseParameters = data.get('ellipseParameters');
+    fitOk = metaData.get('fitStatus').get(0);
+    crossGuess = metaData.get('crossGuess');
+    ellipseParameters = metaData.get('ellipseParameters');
 
-        bearingSource.addFeature(new MarkerFeature([ellipseParameters.get(0), ellipseParameters.get(1)], 'red'));
-        // bearingSource.addFeature(new MarkerFeature([crossGuess.get(0), crossGuess.get(1)], 'black'));
-
-    }
-    catch (e) {
-        console.error(e);
-        return;
-    }
+    bearingSource.addFeature(new MarkerFeature([ellipseParameters.get(0), ellipseParameters.get(1)], 'red'));
+    // bearingSource.addFeature(new MarkerFeature([crossGuess.get(0), crossGuess.get(1)], 'black'));
     console.log('TIME: ', Date.now() - time);
 
     let mainCoord;
