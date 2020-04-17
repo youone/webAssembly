@@ -22,6 +22,7 @@ using namespace Eigen;
 
 const double PI = 3.14159265358979;
 
+
 Vector3d geographic2cartesian(Vector2d location) {
     double latitude = location[0];
     double longitude = location[1];
@@ -86,6 +87,13 @@ double geodesicInverse(VectorXd p1, VectorXd p2) {
     else {
         return azi1;
     }
+}
+
+double getBearing(double lat1, double lon1, double lat2, double lon2) {
+    Vector2d location1, location2;
+    location1 << lat1, lon1;
+    location2 << lat2, lon2;
+    return geodesicInverse(location2, location1);
 }
 
 MatrixXd finalEigenvecs;
@@ -261,6 +269,12 @@ VectorXd getFixGuess(int nSites, MatrixXd crossCoordinates) {
     return guess;
 }
 
+double addBearing(double b1, double b2) {
+    double xCoord = cos(b1*M_PI/180) + cos(b2*M_PI/180);
+    double yCoord = sin(b1*M_PI/180) + sin(b2*M_PI/180);
+    return atan(yCoord/xCoord) * 180 / M_PI;
+}
+
 VectorXd addBearings(VectorXd b1, VectorXd b2) {
     VectorXd xCoord = (b1*M_PI/180).array().cos() + (b2*M_PI/180).array().cos();
     VectorXd yCoord = (b1*M_PI/180).array().sin() + (b2*M_PI/180).array().sin();
@@ -270,19 +284,24 @@ VectorXd addBearings(VectorXd b1, VectorXd b2) {
 
 VectorXd solveIterationSphere(int n, MatrixXd siteCoord, VectorXd bearingMeasured, VectorXd sigma, VectorXd crossGuess, double* angle, double* ev1, double* ev2) {
 
-    MatrixXd J(n, 2), P, bearingDiff(n, 1), eigenvectors;
-    MatrixXd N(n,n);
-    VectorXd bearingGuess(n), crossImproved(2);
-    VectorXd dx1(2), dx2(2);
-    dx1 << 1.0e-5/2, 0;
-    dx2 << 0, 1.0e-5/2;
+    MatrixXd J(n, 2), JJ(n, 2), P, bearingDiff(n, 1), eigenvectors, N(n,n);
+    VectorXd bearingGuess(n), bearingGuessPdiff1(n), bearingGuessNdiff1(n), bearingGuessPdiff2(n), bearingGuessNdiff2(n), crossImproved(2), dx1(2), dx2(2);
+
+    dx1 << 1.0e-5, 0;
+    dx2 << 0, 1.0e-5;
 
     for (int i=0; i<n; i++) {
 
         bearingGuess(i) = geodesicInverse(crossGuess, siteCoord.row(i));
+        bearingGuessPdiff1(i) = geodesicInverse(crossGuess + dx1, siteCoord.row(i));
+//        bearingGuessNdiff1(i) = geodesicInverse(crossGuess - dx1, siteCoord.row(i));
+        bearingGuessPdiff2(i) = geodesicInverse(crossGuess + dx2, siteCoord.row(i));
+//        bearingGuessNdiff2(i) = geodesicInverse(crossGuess - dx2, siteCoord.row(i));
 
-        J(i, 0) = (-geodesicInverse(crossGuess - dx1, siteCoord.row(i)) + geodesicInverse(crossGuess + dx1, siteCoord.row(i)))/1.0e-5;
-        J(i, 1) = (-geodesicInverse(crossGuess - dx2, siteCoord.row(i)) + geodesicInverse(crossGuess + dx2, siteCoord.row(i)))/1.0e-5;
+        J(i, 0) = (-bearingGuess(i) + bearingGuessPdiff1(i))/1.0e-5;
+        J(i, 1) = (-bearingGuess(i) + bearingGuessPdiff2(i))/1.0e-5;
+//        JJ(i, 0) = (-2*bearingGuess(i) + bearingGuessPdiff1(i) + bearingGuessNdiff1(i))/1.0e-10;
+//        JJ(i, 1) = (-2*bearingGuess(i) + bearingGuessPdiff2(i) + bearingGuessNdiff2(i))/1.0e-10;
 
         for (int j=0; j<n; j++) {N(i,j) = 0;}
         N(i,i) = sigma(i)*sigma(i);
@@ -305,7 +324,8 @@ VectorXd solveIterationSphere(int n, MatrixXd siteCoord, VectorXd bearingMeasure
 
     finalEigenvecs = eigenvectors;
 
-//    std::cout << "G: " << std::endl << G << std::endl;
+    std::cout << "JJ: " << std::endl << (P * J.transpose() * N.inverse()) << std::endl;
+//    std::cout << "JJ: " << std::endl << JJ << std::endl;
 //    std::cout << "N: " << std::endl << N << std::endl;
 //    std::cout << "P: " << std::endl << P << std::endl;
 //    std::cout << "EV: " << std::endl << eigenvectors << std::endl;
@@ -324,9 +344,15 @@ VectorXd getFixEstimate(int n, MatrixXd siteCoord, VectorXd siteBearings, Vector
         crossImprovedOld = crossImproved;
         crossImproved = solveIterationSphere(n, siteCoord, siteBearings, sigmas, crossImproved, angle, ev1, ev2);
         std::cout << "CROSSDIFF " << iit << ": " << (crossImprovedOld - crossImproved).norm() << " - " << crossImproved.transpose() << std::endl;
-        if (std::isnan((crossImprovedOld - crossImproved).norm())) *fitStatus = 0;
-        if ((crossImprovedOld - crossImproved).norm() < 0.1) break;
+        double crossMove = (crossImprovedOld - crossImproved).norm();
+        if (std::isnan(crossMove)) *fitStatus = 0;
+        if (crossMove < 0.01) break;
     }
+
+    for (int iSite=0; iSite<n; iSite++) {
+        std::cout << "FIX BEARING: " << addBearing(getBearing(siteCoord(iSite,0), siteCoord(iSite,1), crossImproved(0), crossImproved(1)), -siteBearings(iSite)) << std::endl;
+    }
+
     return crossImproved;
 }
 
@@ -412,12 +438,6 @@ std::map<std::string, std::vector<double>> getEllipse(
     return m;
 }
 
-double getBearing(double lat1, double lon1, double lat2, double lon2) {
-    Vector2d location1, location2;
-    location1 << lat1, lon1;
-    location2 << lat2, lon2;
-    return geodesicInverse(location2, location1);
-}
 
 
 EMSCRIPTEN_BINDINGS(MyLib) {

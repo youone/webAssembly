@@ -3,11 +3,12 @@ import 'ol/ol.css';
 import * as ol from 'ol';
 import VectorLayer from 'ol/layer/Vector';
 import TileLayer from 'ol/layer/Tile';
-import {Style, Fill} from 'ol/style';
+import {Style, Fill, Stroke, Icon, Circle as CircleStyle} from 'ol/style';
 import OSM from 'ol/source/OSM';
 import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
 import Circle from 'ol/geom/Circle';
+import Point from 'ol/geom/Point';
 import Polygon from 'ol/geom/Polygon';
 import LineString from 'ol/geom/LineString';
 import {transform} from 'ol/proj';
@@ -59,8 +60,38 @@ let nHits = 0;
 //     ol3d.setEnabled(!ol3d.getEnabled());
 // }).appendTo('body');
 
-function generateBearings(crossCoord) {
+class MarkerFeature extends Feature {
 
+    constructor(coordinates, color) {
+        super();
+        // this.setId(name, 'hej');
+        this.setGeometry(new Point(transform(coordinates, 'EPSG:4326', 'EPSG:3857')));
+        // this.setGeometry(new Circle(transform(coordinates, 'EPSG:4326', 'EPSG:3857'), 30000));
+        // let style = new FacilityFeatureStyle("Marker", [0.5,1], null);
+        const iconStyle = new Style({
+            image: new CircleStyle({
+                radius: 3,
+                fill: new Fill({
+                    color: color
+                })
+            }),
+            // image: new Icon({
+            //     // color: '#8959A8',
+            //     // crossOrigin: 'anonymous',
+            //     anchor: [0.5, 0.5],
+            //     size: [52, 52],
+            //     // offset: [52, 0],
+            //     // opacity: 0.5,
+            //     scale: 1.0,
+            //     src: 'https://openlayers.org/en/v3.20.1/examples/data/icon.png'
+            // })
+        });
+        this.setStyle(iconStyle);
+    }
+}
+
+
+function generateBearings(crossCoord) {
 
     bearingSource.getFeatures().forEach(f => {
         bearingSource.removeFeature(f);
@@ -73,17 +104,7 @@ function generateBearings(crossCoord) {
     measuredBearings = correctBearings.map((cb, i) => cb + sigma[i]*nrandom() + bias[i]*nrandom());
     // measuredBearings = correctBearings.map((cb, i) => cb + 0*nrandom() + bias[i]*nrandom());
 
-    const crossGeometry = new Circle(transform(crossCoord, 'EPSG:4326', 'EPSG:3857'), 30000);
-    const crossFeature = new Feature({
-        name: 'cross',
-        geometry: crossGeometry,
-    });
-    crossFeature.setStyle(new Style({
-        fill: new Fill({
-            color: 'rgba(255,0,0,1)'
-        })
-    }));
-    bearingSource.addFeature(crossFeature);
+    bearingSource.addFeature(new MarkerFeature(crossCoord, 'blue'));
 
     let fitOk;
     let crossGuess;
@@ -102,18 +123,8 @@ function generateBearings(crossCoord) {
         crossGuess = data.get('crossGuess');
         ellipseParameters = data.get('ellipseParameters');
 
-        const crossGeometry = new Circle(transform([crossGuess.get(0), crossGuess.get(1)], 'EPSG:4326', 'EPSG:3857'), 30000);
-        const crossFeature = new Feature({
-            name: 'crossGuess',
-            geometry: crossGeometry,
-        });
-        crossFeature.setStyle(new Style({
-            fill: new Fill({
-                color: 'rgba(0,0,0,1)'
-            })
-        }));
-        bearingSource.addFeature(crossFeature);
-
+        bearingSource.addFeature(new MarkerFeature([ellipseParameters.get(0), ellipseParameters.get(1)], 'red'));
+        // bearingSource.addFeature(new MarkerFeature([crossGuess.get(0), crossGuess.get(1)], 'black'));
 
     }
     catch (e) {
