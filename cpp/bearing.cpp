@@ -352,7 +352,7 @@ VectorXd getFixEstimate(int n, MatrixXd siteCoord, VectorXd siteBearings, Vector
         chi2 += pow(bearingMeanOffset, 2) / sigmas(iSite);
 //        std::cout << "FIX BEARING: " << sigmas(iSite) << " " << bearingMeanOffset << std::endl;
     }
-    std::cout << "CHI2: " << chi2/n << std::endl;
+    std::cout << "CHI2: " << chi2/(n-1) << std::endl;
 
     return crossImproved;
 }
